@@ -2,18 +2,20 @@ import numpy as np
 import json
 import matplotlib.pyplot as plt
 import networkx as nx
-
+import plotly.graph_objects as go
+import plotly.io as pio
+from vedo import Cylinder, Plotter, Sphere
 
 #01_Scaling
 def bronchi_scaling(order, D1 = 0.007, L1 = 0.04, ratio_d = 1.7, ratio_l = 1.3):
     #computing the scaled diameter and length of every generation bronchi and alveolus
-    D = D1 * (ratio_d ** (-(order-1)))
-    L = L1 * (ratio_l ** (-(order-1)))
+    D = D1 * (ratio_d ** (order-1))
+    L = L1 * (ratio_l ** (order-1))
     A = np.pi * ((D/2) **2)
     return D, L, A
 
 #02_Geometric_Modelling
-def tree_generator(max_order = 15):
+def tree_generator(max_order = 17):
     #building a trachea, bronchi, alveolus tree
     tree = {}
     node_counter = [0]
@@ -43,26 +45,6 @@ def tree_generator(max_order = 15):
     node_generator(max_order)
     return tree
 
-schematic_generation = tree_generator(max_order = 5)
-
-formatted_tree = json.dumps(schematic_generation, indent = 2)
-formatted_tree[:1000]
-
-G = nx.DiGraph()
-for node_id, data in schematic_generation.items():
-    label = f"{data['order']}"
-    G.add_node(node_id, label = label)
-    for child in data['children']:
-        G.add_edge(node_id, child)
-        
-pos = nx.drawing.nx_pydot.pydot_layout(G, prog='dot')
-# plt.figure(figsize=(10,6))
-# nx.draw(G, pos, with_labels=False, arrows=False, node_size=800, node_color="lightblue")
-# nx.draw_networkx_labels(G, pos, labels=nx.get_node_attributes(G, 'label'), font_size=10)
-# plt.title("Trachea Schematic")
-# plt.axis('off')
-# plt.show()
-
 #03_Acoustic_Parameters
 
 #constants
@@ -90,11 +72,93 @@ def compute_acoustic_parameters(tree, frequency = 1000):
     
     return tree
 
+#04_3D_Tree_Generation
+
+def three_d_positions(tree, node_id = 0, position=np.array([0,0,0]), direction=np.array([0, 0, -1]), angle = np.deg2rad(55), branch_factor = 1.0, positions = None): 
+#branch factor = vertical length from parent to child
+    
+    if positions is None:
+        positions = {}
+        
+    positions[node_id] = position
+    children = tree[node_id]['children']
+    if not children:
+        return positions
+    
+    order = tree[node_id]['order']
+    length = tree[node_id]['length']
+    
+    if np.allclose(direction, [0, 0, 1]) or np.allclose(direction, [0, 0, -1]):
+        ortho_dir1 = np.array([1, 0, 0])
+    else:
+        ortho_dir1 = np.cross(direction, [0, 0, 1])
+        ortho_dir1 /= np.linalg.norm(ortho_dir1)
+    
+    left_direction = (np.cos(angle) * direction + np.sin(angle) * ortho_dir1)
+    left_direction /= np.linalg.norm(left_direction)
+    right_direction = (np.cos(angle) * direction - np.sin(angle) * ortho_dir1)
+    right_direction /= np.linalg.norm(right_direction)
+    
+    bifurcation_pos = position + direction * length * branch_factor
+    
+    three_d_positions(tree, children[0], bifurcation_pos, left_direction, angle, branch_factor, positions)
+    three_d_positions(tree, children[1], bifurcation_pos, right_direction, angle, branch_factor, positions)
+    
+    return positions
+
+def build_threed_tree(tree, positions, node_id = 0, tubes = None):
+    if tubes is None:
+        tubes = []
+    
+    pos = positions[node_id]
+    radius = tree[node_id]['diameter']/2
+    
+    sphere = Sphere(pos = pos, r = radius * 1.1, c = 'dodgerblue', alpha = 0.7)
+    tubes.append(sphere)
+    
+    children = tree[node_id]['children']
+    for child_id in children:
+        child_pos = positions[child_id]
+        direction = child_pos - pos
+        height = np.linalg.norm(direction)
+        if height == 0:
+            continue
+        axis = direction/height
+
+        center_pos = pos + axis * height/2
+        tube = Cylinder(pos = center_pos, r = radius, height = height, axis = axis, res = 24, c = 'hotpink')
+        tubes.append(tube)
+        build_threed_tree(tree, positions, child_id, tubes)
+    
+    return tubes
+
+    
+schematic_generation = tree_generator(max_order = 17)
+formatted_tree = json.dumps(schematic_generation, indent = 2)
+formatted_tree[:1000]
 acoustic_tree = compute_acoustic_parameters(schematic_generation, frequency = 1000)
 
-{nid: {
-    'order': data['order'],
-    'length_m': round(data['length'], 4),
-    'Z0 (Pa·s/m³)': round(data['Z0'], 2),
-    'k (rad/m)': round(data['k'], 2)
-} for nid, data in list(acoustic_tree.items())[:5]}
+for node_id, data in acoustic_tree.items():
+    print(f"Node {node_id}: order={data['order']}, children={data['children']}")
+
+positions = three_d_positions(acoustic_tree)
+tubes = build_threed_tree(acoustic_tree, positions)
+    
+plt = Plotter(title = "Ideal Neonatal Respiratory System (3D)", axes = 1, bg = 'white')
+plt.show(tubes, viewup = 'z')
+
+
+# G = nx.DiGraph()
+# for node_id, data in schematic_generation.items():
+#     label = f"{data['order']}"
+#     G.add_node(node_id, label = label)
+#     for child in data['children']:
+#         G.add_edge(node_id, child)
+        
+# pos = nx.drawing.nx_pydot.pydot_layout(G, prog='dot')
+# plt.figure(figsize=(10,6))
+# nx.draw(G, pos, with_labels=False, arrows=False, node_size=800, node_color="lightblue")
+# nx.draw_networkx_labels(G, pos, labels=nx.get_node_attributes(G, 'label'), font_size=10)
+# plt.title("Trachea Schematic")
+# plt.axis('off')
+# plt.show()
