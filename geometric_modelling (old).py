@@ -4,10 +4,11 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import plotly.graph_objects as go
 import plotly.io as pio
+import random
 from vedo import Cylinder, Plotter, Sphere
 
 #01_Scaling
-def bronchi_scaling(order, D1 = 0.007, L1 = 0.04, ratio_d = 1.7, ratio_l = 1.3):
+def bronchi_scaling(order, D1 = 0.007, L1 = 0.1, ratio_d = 1.7, ratio_l = 1.3):
     #computing the scaled diameter and length of every generation bronchi and alveolus
     D = D1 * (ratio_d ** (order-1))
     L = L1 * (ratio_l ** (order-1))
@@ -45,34 +46,7 @@ def tree_generator(max_order = 17):
     node_generator(max_order)
     return tree
 
-#03_Acoustic_Parameters
-
-#constants
-rho = 1.134 #kg/m^3 found using rho = p/RT
-air_speed = 343 #m/s
-
-def compute_acoustic_parameters(tree, frequency = 1000):
-    omega = 2 * np.pi * frequency
-    k = omega/air_speed
-    
-    for node_id, data in tree.items():
-        A = data['area']
-        Z0 = rho * air_speed/A #characteristic impedance
-        L = data['length']
-        T = np.array([
-            [np.exp(1j * k * L), 0],
-            [0, np.exp(-1j * k * L)]
-        ])
-        data.update({
-            'Z0': Z0,
-            'k': k,
-            'omega': omega,
-            'T': T
-        })
-    
-    return tree
-
-#04_3D_Tree_Generation
+#03_3D_Tree_Generation
 
 def three_d_positions(tree, node_id = 0, position=np.array([0,0,0]), direction=np.array([0, 0, -1]), angle = np.deg2rad(55), branch_factor = 1.0, positions = None): 
 #branch factor = vertical length from parent to child
@@ -113,8 +87,8 @@ def build_threed_tree(tree, positions, node_id = 0, tubes = None):
     pos = positions[node_id]
     radius = tree[node_id]['diameter']/2
     
-    sphere = Sphere(pos = pos, r = radius * 1.1, c = 'dodgerblue', alpha = 0.7)
-    tubes.append(sphere)
+    # sphere = Sphere(pos = pos, r = radius * 1.1, c = 'dodgerblue', alpha = 0.7)
+    # tubes.append(sphere)
     
     children = tree[node_id]['children']
     for child_id in children:
@@ -133,32 +107,44 @@ def build_threed_tree(tree, positions, node_id = 0, tubes = None):
     return tubes
 
     
-schematic_generation = tree_generator(max_order = 17)
+schematic_generation = tree_generator(max_order = 7)
 formatted_tree = json.dumps(schematic_generation, indent = 2)
 formatted_tree[:1000]
-acoustic_tree = compute_acoustic_parameters(schematic_generation, frequency = 1000)
 
-for node_id, data in acoustic_tree.items():
+for node_id, data in schematic_generation.items():
     print(f"Node {node_id}: order={data['order']}, children={data['children']}")
 
-positions = three_d_positions(acoustic_tree)
-tubes = build_threed_tree(acoustic_tree, positions)
+positions = three_d_positions(schematic_generation)
+tubes = build_threed_tree(schematic_generation, positions)
     
 plt = Plotter(title = "Ideal Neonatal Respiratory System (3D)", axes = 1, bg = 'white')
 plt.show(tubes, viewup = 'z')
 
+#04_Acoustic_Parameters
 
-# G = nx.DiGraph()
-# for node_id, data in schematic_generation.items():
-#     label = f"{data['order']}"
-#     G.add_node(node_id, label = label)
-#     for child in data['children']:
-#         G.add_edge(node_id, child)
-        
-# pos = nx.drawing.nx_pydot.pydot_layout(G, prog='dot')
-# plt.figure(figsize=(10,6))
-# nx.draw(G, pos, with_labels=False, arrows=False, node_size=800, node_color="lightblue")
-# nx.draw_networkx_labels(G, pos, labels=nx.get_node_attributes(G, 'label'), font_size=10)
-# plt.title("Trachea Schematic")
-# plt.axis('off')
-# plt.show()
+#constants
+rho = 1.134 #kg/m^3 found using rho = p/RT
+air_speed = 343 #m/s
+
+def compute_acoustic_parameters(tree, frequency = 1000):
+    omega = 2 * np.pi * frequency
+    k = omega/air_speed
+    
+    for node_id, data in tree.items():
+        A = data['area']
+        Z0 = rho * air_speed/A #characteristic impedance
+        L = data['length']
+        T = np.array([
+            [np.exp(1j * k * L), 0],
+            [0, np.exp(-1j * k * L)]
+        ])
+        data.update({
+            'Z0': Z0,
+            'k': k,
+            'omega': omega,
+            'T': T
+        })
+    
+    return tree
+
+acoustic_tree = compute_acoustic_parameters(schematic_generation, frequency = 1000)
