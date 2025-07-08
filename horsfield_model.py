@@ -1,67 +1,168 @@
-#the point of this code is to relate the impedance of the horsfield model for the lumped model we are using the coupled oscillator model to the pressure losses in the trachea
+#the point of this code is to relate the impedance of the horsfield model for the lumped model we are using the 
+#coupled oscillator model to the pressure losses in the trachea
+
+#primary research paper link: https://doi.org/10.1016/j.jsv.2014.11.026
 
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 import scipy.special
 
-Z_in = []
+#length (in cm)
 l = [0.0600, 0.0600, 0.0600, 0.0600, 0.0600, 
      0.0737, 0.0938, 0.1313, 0.1638, 0.1375, 
      0.3125, 0.3875, 0.4500, 0.5250, 0.6000, 
      0.6462, 0.7875, 0.8000, 0.9625, 1.0125, 
      1.0250, 1.1500, 1.0000, 1.2375, 1.1875, 
      1.0750, 1.3500, 1.2125, 1.4125, 1.4125, 
-     1.3125, 1.3750, 2.7500, 6.2500, 12.500] #in cm
+     1.3125, 1.3750, 2.7500, 6.2500, 12.500]
 
+#diameter (in cm)
 d = [0.1000, 0.1000, 0.1000, 0.1000, 0.1000, 
      0.1000, 0.0537, 0.0600, 0.0663, 0.0788,
      0.0950, 0.1189, 0.1375, 0.1750, 0.2000,
      0.2250, 0.2500, 0.2725, 0.3000, 0.3125,
      0.3375, 0.2500, 0.3625, 0.3875, 0.4375,
      0.4375, 0.5375, 0.6750, 0.7375, 0.7375,
-     0.9125, 1.0000, 1.3750, 1.5000, 2.0000] #in cm
+     0.9125, 1.0000, 1.3750, 1.5000, 2.0000]
 
+#recursion value
+Delta = [0, 0, 0, 0, 0,
+         0, 0, 0, 0, 0,
+         1, 2, 2, 3, 3,
+         3, 3, 3, 3, 3,
+         3, 3, 3, 3, 3,
+         3, 3, 3, 3, 3,
+         3, 3, 3, 2, 1]
+
+#wall thickness (in cm) - Note: this value, along with l and d, differ from the reference paper used for c.
+h = [0.0065, 0.0065, 0.0065, 0.0065, 0.0065,
+     0.0065, 0.0036, 0.0040, 0.0045, 0.0052,
+     0.0063, 0.0075, 0.0084, 0.0061, 0.0106,
+     0.0114, 0.0120, 0.0125, 0.0131, 0.0134,
+     0.0139, 0.0140, 0.0143, 0.0147, 0.0158,
+     0.0158, 0.0186, 0.0256, 0.0305, 0.0305,
+     0.0511, 0.0660, 0.1685, 0.2169, 0.4655]
+
+#fractional proportions of cartilage (taken from reference 21 in the primary research paper used above)
+c = [0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+     0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+     0.0000, 0.0000, 0.0000, 0.0000, 0.0000,
+     0.0000, 0.0224, 0.0262, 0.0309, 0.0329,
+     0.0370, 0.0390, 0.0410, 0.0450, 0.0526,
+     0.0526, 0.0671, 0.0851, 0.0926, 0.2000,
+     0.2500, 0.3300, 0.5000, 0.5000, 0.6700]
+
+#convert all above parameters to m
+l = [i * 0.01 for i in l]
+d = [i * 0.01 for i in d]
+h = [i * 0.01 for i in h]
+
+#cross-sectional area (in cm^2)
 A = []
 for n in range(len(d)):
     area = np.pi/4 * (d[n] ** 2)
     A.append(area)
-    
+
+#radius (in cm)
 a = []
 for n in range(len(d)):
-    radius = d/2
+    radius = d[n]/2
     a.append(radius)
 
 #Constant Parameters (set to 37.8C)
-rho_g = 1.225 #kg/m^3
-c_g = 340 #m/s
-eta_g = 1.9 * (10**(-5)) #kg/(m*s)
-kappa_g = 0.02735 #W/mK
-C_g = 1005 #kJ/kg K
+rho_g = 1.225 #kg/m^3 - air density
+c_g = 343 #m/s - speed of sound
+eta_g = 1.82 * (10**(-5)) #kg/(m*s) - air viscosity
+kappa_g = 6.4 * (10**(-3)) #W/mK - air thermal conductivity
+C_g = 240 #kJ/kg K - air specific heat capacity
+
+#double check these values
+rho_soft_tissue = 1060 #kg/m^3
+rho_cartilage = 1140 #kg/m^3
+
+cartilage_viscosity = 688.0     #Pa s
+soft_tissue_viscosity = 102.0   #Pa s
+
+E_cartilage = 3.92 * (10**5)    #Pa
+E_soft_tissue = 5.81 * (10**4)  #Pa
+
+Rt = 372.5              #Pa s m^-3
+It = 55.9               #Pa s^2 m^-3
+Ct = 1.275 * (10**(-5)) #m^3 Pa^-1
 
 #Variable Parameters
-omega = 1000
+omega = 1000 #frequency
 
 #initialise lists
-Z_0 = []
-gamma_0 = []
-Z = []
-Y = []
-F_v = []
-F_t = []
-Z_T = []
-Z_w = []
+Z_in = []       #inlet impedance
+Z_0 = []        #characteristic impedance of airway segment
+gamma_0 = []    #propagation coefficient of airway segment
+Z = []          #series impedance of airway segment
+Y = []          #shunt admittance of airway segment
+F_v = []        #sound attenuation due to air viscosity
+F_t = []        #sound attenuation due to thermal dissipation
+Z_T = []        #acoustic impedance at the far end of each segment
+Z_w = []        #effective volumetric wall impedance
+Z_wc = []       #effective volumetric wall impedance (cartilage)
+Z_ws = []       #effective volumetric wall impedance (soft-tissue)
+
+R_wc = []       #series resistance (cartilage)
+R_ws = []       #series resistance (soft-tissue)
+I_wc = []       #inertance (cartilage)
+I_ws = []       #inertance (soft-tissue)
+C_wc = []       #compliance (cartilage)
+C_ws = []       #compliance (soft-tissue)
+
+N_T = 2350000
 
 #Characteristic Equations
-for n in range(1,35):
-    F_t[n] = 2/(a[n] * np.sqrt((-1j * omega * C_g/kappa_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * omega * C_g/kappa_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * omega * C_g/kappa_g)))))) #Equation 7
-    F_v[n] = 2/(a[n] * np.sqrt((-1j * omega * rho_g/eta_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * omega * rho_g/eta_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * omega * rho_g/eta_g)))))) #Equation 6
+for n in range(len(d)):
+    if n == 0:
+        ZT = N_T/((1j * omega * C_g)+(1/(Rt + 1j*((omega * It)-1/(omega * Ct)))))
+        Z_T.append(ZT)
     
-    Y[n] = ((1j * omega * A[n])/(rho_g * (c_g **2))) * (1 + (0.402 * F_t[n])) + ((Z_w[n] * l[n])**(-1)) #Equation 5
-    Z[n] = (1j * omega * rho_g)/(A[n] * (1 - F_v[n]))                                                   #Equation 4
+    else:
+        ZT = 1/((1/Z_T[n-1]) + (1/Z_T[n-1-Delta[n]]))
+        Z_T.append(ZT)
     
+    Rwc = (4 * h[n] * cartilage_viscosity)/(np.pi * (d[n]**3) * l[n])   #Equation 10a
+    Rws = (4 * h[n] * soft_tissue_viscosity)/(np.pi * (d[n]**3) * l[n]) #Equation 10b
+    Iwc = (h[n] * rho_cartilage)/(np.pi * d[n] * l[n])                  #Equation 11a
+    Iws = (h[n] * rho_soft_tissue)/(np.pi * d[n] * l[n])                #Equation 11b
+    Cwc = (np.pi * (d[n]**3) * l[n])/(4 * h[n] * E_cartilage)           #Equation 12a
+    Cws = (np.pi * (d[n]**3) * l[n])/(4 * h[n] * E_soft_tissue)         #Equation 12b
+    R_wc.append(Rwc)
+    R_ws.append(Rws)
+    I_wc.append(Iwc)
+    I_ws.append(Iws)
+    C_wc.append(Cwc)
+    C_ws.append(Cws)
     
-    gamma_0[n] = np.sqrt(Z[n] * Y[n])   #Equation 3
-    Z_0[n] = np.sqrt(Z[n]/Y[n])         #Equation 2
+    Zwc = R_wc[n] + 1j * ((omega * I_wc[n])- (1/(omega * C_wc[n]))) #Equation 9a
+    Zws = R_ws[n] + 1j * ((omega * I_ws[n])- (1/(omega * C_ws[n]))) #Equation 9b
+    Z_wc.append(Zwc)
+    Z_ws.append(Zws)
     
-    Z_in[n] = (Z_T[n] + Z_0[n] * np.tanh(gamma_0[n] * l[n]))/(1 + (Z_T[n]/Z_0[n]) * np.tanh(gamma_0[n] * l[n])) #Equation 1
+    Zw = ((c[n]/Z_wc[n]) + ((1-c[n])/Z_ws[n]))**(-1)    #Equation 8
+    Z_w.append(Zw)
+    
+    Ft = 2/(a[n] * np.sqrt((-1j * omega * C_g/kappa_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * omega * C_g/kappa_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * omega * C_g/kappa_g)))))) #Equation 7
+    Fv = 2/(a[n] * np.sqrt((-1j * omega * rho_g/eta_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * omega * rho_g/eta_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * omega * rho_g/eta_g)))))) #Equation 6
+    F_t.append(Ft)
+    F_v.append(Fv)
+    
+    y = ((1j * omega * A[n])/(rho_g * (c_g **2))) * (1 + (0.402 * F_t[n])) + ((Z_w[n] * l[n])**(-1)) #Equation 5
+    z = (1j * omega * rho_g)/(A[n] * (1 - F_v[n]))                                                   #Equation 4
+    Y.append(y)
+    Z.append(z)
+    
+    gamma0 = np.sqrt(Z[n] * Y[n])   #Equation 3 - propagation coefficient
+    Z0 = np.sqrt(Z[n]/Y[n])         #Equation 2 - characteristic impedance
+    gamma_0.append(gamma0)
+    Z_0.append(Z0)
+    
+    Zin = (Z_T[n] + Z_0[n] * np.tanh(gamma_0[n] * l[n]))/(1 + (Z_T[n]/Z_0[n]) * np.tanh(gamma_0[n] * l[n])) #Equation 1
+    Z_in.append(Zin)
+    
+    print(f"For n: {n+1}, Z_in = {Zin}")
