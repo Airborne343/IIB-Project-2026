@@ -166,3 +166,8 @@ for n in range(len(d)):
     Z_in.append(Zin)
     
     print(f"For n: {n+1}, Z_in = {Zin}")
+
+#understanding impedance:
+#Z = R + iX
+#R: resistance -> any energy loss (viscous, thermal etc.). changes how oscillations grow or decay
+#X: impedance -> changes frequency of oscillations
