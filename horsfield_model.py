@@ -58,13 +58,13 @@ l = [i * 0.01 for i in l]
 d = [i * 0.01 for i in d]
 h = [i * 0.01 for i in h]
 
-#cross-sectional area (in cm^2)
+#cross-sectional area (in m^2)
 A = []
 for n in range(len(d)):
     area = np.pi/4 * (d[n] ** 2)
     A.append(area)
 
-#radius (in cm)
+#radius (in m)
 a = []
 for n in range(len(d)):
     radius = d[n]/2
@@ -165,7 +165,7 @@ for n in range(len(d)):
     Zin = (Z_T[n] + Z_0[n] * np.tanh(gamma_0[n] * l[n]))/(1 + (Z_T[n]/Z_0[n]) * np.tanh(gamma_0[n] * l[n])) #Equation 1
     Z_in.append(Zin)
     
-    print(f"For n: {n+1}, Z_in = {Zin}")
+    # print(f"For n: {n+1}, Z_in = {Zin}")
 
 #understanding impedance:
 #Z = R + iX
