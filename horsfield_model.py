@@ -7,6 +7,7 @@ import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 import scipy.special
+from coupled_oscillator_model import U
 
 #length (in cm)
 l = [0.0600, 0.0600, 0.0600, 0.0600, 0.0600, 
@@ -93,6 +94,8 @@ Ct = 1.275 * (10**(-5)) #m^3 Pa^-1
 
 #Variable Parameters
 omega = 1000 #frequency
+k = omega/c_g
+U_val = U(200)
 
 #initialise lists
 Z_in = []       #inlet impedance
@@ -100,8 +103,10 @@ Z_0 = []        #characteristic impedance of airway segment
 gamma_0 = []    #propagation coefficient of airway segment
 Z = []          #series impedance of airway segment
 Y = []          #shunt admittance of airway segment
-F_v = []        #sound attenuation due to air viscosity
-F_t = []        #sound attenuation due to thermal dissipation
+F_v1 = []       #sound attenuation due to air viscosity
+F_v2 = []
+F_t1 = []       #sound attenuation due to thermal dissipation
+F_t2 = []
 Z_T = []        #acoustic impedance at the far end of each segment
 Z_w = []        #effective volumetric wall impedance
 Z_wc = []       #effective volumetric wall impedance (cartilage)
@@ -147,13 +152,17 @@ for n in range(len(d)):
     Zw = ((c[n]/Z_wc[n]) + ((1-c[n])/Z_ws[n]))**(-1)    #Equation 8
     Z_w.append(Zw)
     
-    Ft = 2/(a[n] * np.sqrt((-1j * omega * C_g/kappa_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * omega * C_g/kappa_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * omega * C_g/kappa_g)))))) #Equation 7
-    Fv = 2/(a[n] * np.sqrt((-1j * omega * rho_g/eta_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * omega * rho_g/eta_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * omega * rho_g/eta_g)))))) #Equation 6
-    F_t.append(Ft)
-    F_v.append(Fv)
+    Ft1 = 2/(a[n] * np.sqrt((-1j * (omega - (k*U_val)) * C_g/kappa_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * (omega - (k*U_val)) * C_g/kappa_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * (omega - (k*U_val)) * C_g/kappa_g)))))) #Equation 7
+    Ft2 = 2/(a[n] * np.sqrt((-1j * (omega + (k*U_val)) * C_g/kappa_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * (omega + (k*U_val)) * C_g/kappa_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * (omega + (k*U_val)) * C_g/kappa_g)))))) #Equation 7
+    Fv1 = 2/(a[n] * np.sqrt((-1j * (omega - (k*U_val)) * rho_g/eta_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * (omega - (k*U_val)) * rho_g/eta_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * (omega - (k*U_val)) * rho_g/eta_g)))))) #Equation 6
+    Fv2 = 2/(a[n] * np.sqrt((-1j * (omega + (k*U_val)) * rho_g/eta_g))) * ((scipy.special.jv(1, (a[n] * np.sqrt((-1j * (omega + (k*U_val)) * rho_g/eta_g)))))/(scipy.special.jv(0, (a[n] * np.sqrt((-1j * (omega + (k*U_val)) * rho_g/eta_g)))))) #Equation 6
+    F_t1.append(Ft1)
+    F_t2.append(Ft2)
+    F_v1.append(Fv1)
+    F_v2.append(Fv2)
     
-    y = ((1j * omega * A[n])/(rho_g * (c_g **2))) * (1 + (0.402 * F_t[n])) + ((Z_w[n] * l[n])**(-1)) #Equation 5
-    z = (1j * omega * rho_g)/(A[n] * (1 - F_v[n]))                                                   #Equation 4
+    y = (((1j * (omega - (k*U_val)) * A[n])/(rho_g * (c_g **2))) * (1 + (0.402 * F_t1[n])) + ((Z_w[n] * l[n])**(-1))) + ((1j * (omega + (k*U_val)) * A[n])/(rho_g * (c_g **2))) * (1 + (0.402 * F_t2[n])) + ((Z_w[n] * l[n])**(-1))               #Equation 5
+    z = (1j * (omega - (k*U_val)) * rho_g)/(A[n] * (1 - F_v1[n])) + (1j * (omega + (k*U_val)) * rho_g)/(A[n] * (1 - F_v2[n]))                                                                                                                     #Equation 4
     Y.append(y)
     Z.append(z)
     
@@ -165,9 +174,9 @@ for n in range(len(d)):
     Zin = (Z_T[n] + Z_0[n] * np.tanh(gamma_0[n] * l[n]))/(1 + (Z_T[n]/Z_0[n]) * np.tanh(gamma_0[n] * l[n])) #Equation 1
     Z_in.append(Zin)
     
-    # print(f"For n: {n+1}, Z_in = {Zin}")
+    print(f"For n: {n+1}, Z_in = {Zin}")
 
-#understanding impedance:
-#Z = R + iX
-#R: resistance -> any energy loss (viscous, thermal etc.). changes how oscillations grow or decay
-#X: impedance -> changes frequency of oscillations
+# understanding impedance:
+# Z = R + iX
+# R: resistance -> any energy loss (viscous, thermal etc.). changes how oscillations grow or decay
+# X: impedance -> changes frequency of oscillations
