@@ -37,7 +37,7 @@ def coupled_oscillatory_model(t, x):
     
     #parameters
     omega_0 = 200 * 2 * np.pi   #angular frequency
-    omega_d = 50 * 2 * np.pi   #damper frequency
+    omega_d = 50 * 2 * np.pi    #damper frequency
     nu = 50                     #growth rate
     kappa = 1000                #non-linear coefficient
     alpha = 500                 #u_dot term in 1st eqn
@@ -54,8 +54,8 @@ def coupled_oscillatory_model(t, x):
 
 #initialise
 x0 = [0.1, 0, 0.01, 0]
-t_span = (0, 100)
-t_eval = np.linspace(*t_span, 100)
+t_span = (0, 0.2)
+t_eval = np.linspace(*t_span, 5000)
 
 solver = solve_ivp(coupled_oscillatory_model, t_span, x0, method = 'RK45', t_eval = t_eval)
 

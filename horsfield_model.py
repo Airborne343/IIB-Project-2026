@@ -7,9 +7,6 @@ import numpy as np
 import scipy
 import matplotlib.pyplot as plt
 import scipy.special
-from scipy.integrate import solve_ivp
-from scipy.optimize import curve_fit
-from coupled_oscillator_model import coupled_oscillatory_model, U, dU
 
 #length (in cm)
 l_cm = [0.0600, 0.0600, 0.0600, 0.0600, 0.0600, 
@@ -73,7 +70,6 @@ for n in range(len(d_m)):
     radius = d_m[n]/2
     a.append(radius)
 
-Z_in = []
 def compute_impedance(l, d, h, c, Delta, omega = 1000, N_T = 2350000, U_val = None):
     #Constant Parameters (set to 37.8C)
     rho_g = 1.225 #kg/m^3 - air density
@@ -177,58 +173,12 @@ def compute_impedance(l, d, h, c, Delta, omega = 1000, N_T = 2350000, U_val = No
     Z_real = np.real(Z_in)
     Z_imag = np.imag(Z_in)
         
-    return Z_real
+    return Z_real, Z_imag
 
+Z_real, Z_imag = compute_impedance(l_m, d_m, h_m, c, Delta, omega = 1000, N_T = 2350000, U_val = 100)
 
-Z_in = compute_impedance(l_m, d_m, h_m, c, Delta, omega = 1000, N_T = 2350000, U_val = 0.0001)
-print(Z_in)
-
-#Objective: Find the pressure loss coefficient at bronchus
-#initialise
-x0 = [0.1, 0, 0.01, 0]
-t_span = (0, 5)
-t_eval = np.linspace(*t_span, 5000)
-
-solver = solve_ivp(coupled_oscillatory_model, t_span, x0, method = 'RK45', t_eval = t_eval)
-u_prime = solver.y[2]
-u_hat = np.max(np.abs(u_prime/100))
-print(u_hat)
-
-def g(x):
-    if abs(x) <= 1:
-        g = (2/np.pi)*(x * np.arcsin(x) + (2 + x**2)*(np.sqrt(1 - x**2)/3))
-        return g
-    
-    elif abs(x) > 1:
-        g = x
-        return g
-    
-    else:
-        raise ValueError("x value is invalid.")
-
-U_range = np.linspace(0, 25, 26)
-U_range = [i * (1/60000) for i in U_range]
-
-Z_list = []
-g_list = []
-
-for u in U_range:
-    Z_in = compute_impedance(l_m, d_m, h_m, c, Delta, omega = 1000, N_T = 2350000, U_val = u)
-    Z_list.append(Z_in[33])
-    
-    print(u/u_hat)
-    g_func = g(u/u_hat)
-    g_list.append(g_func)
-    
-def linear_model(x, K):
-    return K * x
-
-popt, _ = curve_fit(linear_model, g_list, Z_list)
-K_fit = popt[0]
-c_air = 343 #m/s
-zeta = (K_fit * c_air) / u_hat
-
-print(f"Royston's ζ (pressure loss coefficient): {zeta:.4f}")
+print(Z_real)
+print(Z_imag)
 
 # understanding impedance:
 # Z = R + iX

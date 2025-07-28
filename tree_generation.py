@@ -132,8 +132,6 @@ max_pressure_drop_list = []
 min_pressure_drop_list = []
 mean_pressure_drop_list = []
 
-Z_in = []
-
 for q in Q_range:  
     print(f"Processing Q = {q:.2f} L/min")
     q = q/60000
