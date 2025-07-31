@@ -177,9 +177,6 @@ def compute_impedance(l, d, h, c, Delta, omega = 1000, N_T = 2350000, U_val = No
 
 Z_real, Z_imag = compute_impedance(l_m, d_m, h_m, c, Delta, omega = 1000, N_T = 2350000, U_val = 100)
 
-print(Z_real)
-print(Z_imag)
-
 # understanding impedance:
 # Z = R + iX
 # R: resistance -> any energy loss (viscous, thermal etc.). changes how oscillations grow or decay
