@@ -4,7 +4,7 @@ import skrf
 from skrf.vectorFitting import VectorFitting
 from scipy.signal import StateSpace, lsim
 import sympy as sp
-from horsfield_model import l_m, d_m, h_m, Delta, c, compute_impedance
+from step01_horsfield_model import l_m, d_m, h_m, Delta, c, compute_impedance
 
 frequency = np.linspace(100, 2500, 2500)
 omega_sweep = [freq * (2 * np.pi) for freq in frequency]
@@ -17,8 +17,9 @@ def impedance_n34(l, d, h, omega_range):
         Z_real, Z_imag = compute_impedance(l, d, h, c, Delta, omega, N_T = 2350000, U_val = 0)
         Z_real34.append(Z_real[33])
         Z_imag34.append(Z_imag[33])
-
+        
     Z_complex = np.array(Z_real34)  + 1j * np.array(Z_imag34)
+    
     return Z_complex
 
 Z_cmplx = impedance_n34(l_m, d_m, h_m, omega_sweep)
@@ -79,11 +80,6 @@ vf_best.vector_fit(
     fit_proportional=True
 )
 
-for residue, pole in zip(vf_best.residues[0], vf_best.poles):
-    print(f"    {residue} / (s - ({pole}))")
-print(f"  + d = {vf_best.constant_coeff[0]:.4e}")
-print(f"  + s·e = {vf_best.proportional_coeff[0]:.4e} * s")
-
 s, t = sp.symbols('s t')
 poles = vf_best.poles
 residues = vf_best.residues[0]
@@ -105,8 +101,6 @@ def include_conjugates(poles, residues):
     return np.array(all_poles), np.array(all_residues)
 
 all_poles, all_residues = include_conjugates(poles, residues)
-print("All poles:", all_poles)
-print("All residues:", all_residues)
     
 def state_space_model(poles, residues, d, t = None):
     #_____State-Space Model_____#
@@ -128,7 +122,6 @@ def state_space_model(poles, residues, d, t = None):
     return t_out, y_out, x_out
 
 t_impulse, Z_t, x_out = state_space_model(all_poles, all_residues, d)
-print(f"x_out: {x_out}")
 
 plt.figure()
 plt.plot(t_impulse, Z_t.real, label="Re[Z(t)]")

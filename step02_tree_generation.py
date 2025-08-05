@@ -2,8 +2,8 @@ import numpy as np
 import random
 import scipy
 import matplotlib.pyplot as plt
-from horsfield_model import l_m, d_m, Delta, A, h_m, c, compute_impedance
-
+from step01_horsfield_model import l_m, d_m, Delta, A, h_m, c, compute_impedance
+from collections import defaultdict
 
 rho_g = 1.225 #kg/m^3
 
@@ -74,6 +74,17 @@ def construct_tree(generation, max_recursion = 5, counter = 0):
             
     return node
 
+def map_tree_to_horsfield_gen(node, depth = 1, mapping = None):
+    if mapping is None:
+        mapping = defaultdict(list)
+        
+    mapping[depth].append(node.generation)
+    
+    for child in node.children:
+        map_tree_to_horsfield_gen(child, depth+1, mapping)
+    
+    return mapping    
+
 def distribute_flow(node, parent_flow):
     node.flow = parent_flow
     
@@ -125,7 +136,20 @@ def print_tree(node, indent=0):
     for child in node.children:
         print_tree(child, indent + 1)
 
+def get_depth_to_generation_map():
+    tree_root = construct_tree(35)
+    return map_tree_to_horsfield_gen(tree_root)
+
 tree_root = construct_tree(35)
+horsfield_tree = map_tree_to_horsfield_gen(tree_root)
+for depth in sorted(horsfield_tree.keys()):
+    if depth > 5:
+        break
+    generations = sorted(horsfield_tree[depth], reverse = True)
+    print(f"Depth: {depth}: Horsfield Generations = {generations}")
+
+#---Pressure-Drop-Calculations---#
+
 Q_range = np.linspace(0, 25, 26) #in L/min
 
 max_pressure_drop_list = []

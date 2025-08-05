@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
-from horsfield_model import A, l, Z_in, rho_g
+from step01_horsfield_model import A, l, Z_in, rho_g
 
 Kc = 0.05 #assumed value from literature
 Kd = 0.35 #value at Ac/A2 = 0.2

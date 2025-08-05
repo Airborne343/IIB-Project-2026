@@ -172,7 +172,7 @@ def compute_impedance(l, d, h, c, Delta, omega = 1000, N_T = 2350000, U_val = No
         
     Z_real = np.real(Z_in)
     Z_imag = np.imag(Z_in)
-        
+    
     return Z_real, Z_imag
 
 Z_real, Z_imag = compute_impedance(l_m, d_m, h_m, c, Delta, omega = 1000, N_T = 2350000, U_val = 100)
