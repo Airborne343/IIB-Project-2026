@@ -22,6 +22,41 @@ def impedance_n34(l, d, h, omega_range):
     
     return Z_complex
 
+def include_conjugates(poles, residues):
+    all_poles = []
+    all_residues = []
+    
+    for p, r in zip(poles, residues):
+        all_poles.append(p)
+        all_residues.append(r)
+        
+        if np.imag(p) > 0:
+            all_poles.append(np.conj(p))
+            all_residues.append(np.conj(r))
+    
+    return np.array(all_poles), np.array(all_residues)
+
+def state_space_model(poles, residues, d, t = None, u = None):
+    #_____State-Space Model_____#
+    A = np.diag(poles)
+    B = np.ones((len(poles), 1))
+    C = residues.reshape(1, -1)
+    D = 0
+
+    if t is None:
+        t = np.linspace(0, 0.2, 20000)
+
+    dt = t[1] - t[0]
+    
+    if u is None:
+        u = np.zeros_like(t)
+        u[0] = 1 / dt
+        
+    sys = StateSpace(A, B, C, D)
+    t_out, y_out, x_out = lsim(sys, U=u, T=t)
+    
+    return t_out, y_out, x_out, A, B, C, D
+
 Z_cmplx = impedance_n34(l_m, d_m, h_m, omega_sweep)
 Z_max = np.max(np.abs(Z_cmplx))
 Z_scaled = Z_cmplx / Z_max
@@ -86,42 +121,9 @@ residues = vf_best.residues[0]
 d = vf_best.constant_coeff[0]
 e = vf_best.proportional_coeff[0]
 
-def include_conjugates(poles, residues):
-    all_poles = []
-    all_residues = []
-    
-    for p, r in zip(poles, residues):
-        all_poles.append(p)
-        all_residues.append(r)
-        
-        if np.imag(p) > 0:
-            all_poles.append(np.conj(p))
-            all_residues.append(np.conj(r))
-    
-    return np.array(all_poles), np.array(all_residues)
-
 all_poles, all_residues = include_conjugates(poles, residues)
-    
-def state_space_model(poles, residues, d, t = None):
-    #_____State-Space Model_____#
-    A = np.diag(poles)
-    B = np.ones((len(poles), 1))
-    C = residues.reshape(1, -1)
-    D = 0
 
-    if t is None:
-        t = np.linspace(0, 0.2, 2000)
-
-    dt = t[1] - t[0]
-    u = np.zeros_like(t)
-    u[0] = 1 / dt
-        
-    sys = StateSpace(A, B, C, D)
-    t_out, y_out, x_out = lsim(sys, U=u, T=t)
-    
-    return t_out, y_out, x_out
-
-t_impulse, Z_t, x_out = state_space_model(all_poles, all_residues, d)
+t_impulse, Z_t, x_out, A, B, C, D = state_space_model(all_poles, all_residues, d)
 
 plt.figure()
 plt.plot(t_impulse, Z_t.real, label="Re[Z(t)]")

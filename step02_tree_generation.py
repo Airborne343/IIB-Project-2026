@@ -2,7 +2,7 @@ import numpy as np
 import random
 import scipy
 import matplotlib.pyplot as plt
-from step01_horsfield_model import l_m, d_m, Delta, A, h_m, c, compute_impedance
+from step01_horsfield_model import l_m, d_m, Delta, area, h_m, c, compute_impedance
 from collections import defaultdict
 
 rho_g = 1.225 #kg/m^3
@@ -14,7 +14,7 @@ class Branch:
         self.length = l_m[generation - 1]
         self.diameter = d_m[generation - 1]
         self.recursion = Delta[generation - 1]
-        self.area = A[generation - 1]
+        self.area = area[generation - 1]
         self.children = []
         
         self.flow = 0.0 #L/min
@@ -140,62 +140,62 @@ def get_depth_to_generation_map():
     tree_root = construct_tree(35)
     return map_tree_to_horsfield_gen(tree_root)
 
-tree_root = construct_tree(35)
-horsfield_tree = map_tree_to_horsfield_gen(tree_root)
-for depth in sorted(horsfield_tree.keys()):
-    if depth > 5:
-        break
-    generations = sorted(horsfield_tree[depth], reverse = True)
-    print(f"Depth: {depth}: Horsfield Generations = {generations}")
+if __name__ == "__main__":
+    tree_root = construct_tree(35)
+    horsfield_tree = map_tree_to_horsfield_gen(tree_root)
+    for depth in sorted(horsfield_tree.keys()):
+        if depth > 5:
+            break
+        generations = sorted(horsfield_tree[depth], reverse = True)
+        print(f"Depth: {depth}: Horsfield Generations = {generations}")
 
-#---Pressure-Drop-Calculations---#
+    #---Pressure-Drop-Calculations---#
+    Q_range = np.linspace(0, 25, 26) #in L/min
 
-Q_range = np.linspace(0, 25, 26) #in L/min
+    max_pressure_drop_list = []
+    min_pressure_drop_list = []
+    mean_pressure_drop_list = []
 
-max_pressure_drop_list = []
-min_pressure_drop_list = []
-mean_pressure_drop_list = []
+    for q in Q_range:  
+        print(f"Processing Q = {q:.2f} L/min")
+        q = q/60000
+        distribute_flow(tree_root, q)
 
-for q in Q_range:  
-    print(f"Processing Q = {q:.2f} L/min")
-    q = q/60000
-    distribute_flow(tree_root, q)
+        starting_nodes = tree_root.children
+        all_pressure_drops = []
 
-    starting_nodes = tree_root.children
-    all_pressure_drops = []
+        for node in starting_nodes:
+            paths = get_terminal_paths_from(node)
+            for path in paths:
+                drop = compute_pressure_drop(path)
+                all_pressure_drops.append(drop)
+        
+        all_pressure_drops = [i/100 for i in all_pressure_drops]
+        max_pressure_drop = max(all_pressure_drops)
+        min_pressure_drop = min(all_pressure_drops)
+        mean_pressure_drop = sum(all_pressure_drops)/len(all_pressure_drops)
+        
+        max_pressure_drop_list.append(max_pressure_drop)
+        min_pressure_drop_list.append(min_pressure_drop)
+        mean_pressure_drop_list.append(mean_pressure_drop)
 
-    for node in starting_nodes:
-        paths = get_terminal_paths_from(node)
-        for path in paths:
-            drop = compute_pressure_drop(path)
-            all_pressure_drops.append(drop)
-    
-    all_pressure_drops = [i/100 for i in all_pressure_drops]
-    max_pressure_drop = max(all_pressure_drops)
-    min_pressure_drop = min(all_pressure_drops)
-    mean_pressure_drop = sum(all_pressure_drops)/len(all_pressure_drops)
-    
-    max_pressure_drop_list.append(max_pressure_drop)
-    min_pressure_drop_list.append(min_pressure_drop)
-    mean_pressure_drop_list.append(mean_pressure_drop)
+    pressure_loss_coeff_list = []
 
-pressure_loss_coeff_list = []
+    for i in range(len(Q_range) - 1):
+        pressure_loss_coeff = mean_pressure_drop_list[i+1]/(0.5 * rho_g * ((Q_range[i+1] / (60000 * area[33])) ** 2))
+        pressure_loss_coeff_list.append(pressure_loss_coeff)
 
-for i in range(len(Q_range) - 1):
-    pressure_loss_coeff = mean_pressure_drop_list[i+1]/(0.5 * rho_g * ((Q_range[i+1] / (60000 * A[33])) ** 2))
-    pressure_loss_coeff_list.append(pressure_loss_coeff)
-
-plt.figure(figsize = (10,5))
-plt.plot(Q_range, max_pressure_drop_list, label= "Maximum Pressure Drop")
-plt.plot(Q_range, min_pressure_drop_list, label= "Minimum Pressure Drop")
-plt.plot(Q_range, mean_pressure_drop_list, label= "Mean Pressure Drop")
-plt.xlabel(r"Volumetric Flow Rate, Q ($\ell$/min)")
-plt.ylabel(r"Total Pressure Loss, $\Delta$p (mbar)")
-plt.title("Pressure-Flow Relationship")
-plt.legend()
-plt.grid(True)
-plt.show()
+    plt.figure(figsize = (10,5))
+    plt.plot(Q_range, max_pressure_drop_list, label= "Maximum Pressure Drop")
+    plt.plot(Q_range, min_pressure_drop_list, label= "Minimum Pressure Drop")
+    plt.plot(Q_range, mean_pressure_drop_list, label= "Mean Pressure Drop")
+    plt.xlabel(r"Volumetric Flow Rate, Q ($\ell$/min)")
+    plt.ylabel(r"Total Pressure Loss, $\Delta$p (mbar)")
+    plt.title("Pressure-Flow Relationship")
+    plt.legend()
+    plt.grid(True)
+    plt.show()
 
 
-for i, coeff in enumerate(pressure_loss_coeff_list):
-    print(f"Q = {Q_range[i+1]:.2f} L/min → ζ = {coeff:.3e}")
+    for i, coeff in enumerate(pressure_loss_coeff_list):
+        print(f"Q = {Q_range[i+1]:.2f} L/min → ζ = {coeff:.3e}")

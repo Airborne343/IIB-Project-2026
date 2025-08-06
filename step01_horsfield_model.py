@@ -59,10 +59,10 @@ d_m = [i * 0.01 for i in d_cm]
 h_m = [i * 0.01 for i in h_cm]
 
 #cross-sectional area (in m^2)
-A = []
+area = []
 for n in range(len(d_m)):
-    area = np.pi/4 * (d_m[n] ** 2)
-    A.append(area)
+    cross_sectional_area = np.pi/4 * (d_m[n] ** 2)
+    area.append(cross_sectional_area)
 
 #radius (in m)
 a = []
@@ -70,7 +70,7 @@ for n in range(len(d_m)):
     radius = d_m[n]/2
     a.append(radius)
 
-def compute_impedance(l, d, h, c, Delta, omega = 1000, N_T = 2350000, U_val = None):
+def compute_impedance(l, d, h, c, Delta, omega, N_T = 2350000, U_val = None):
     #Constant Parameters (set to 37.8C)
     rho_g = 1.225 #kg/m^3 - air density
     c_g = 343 #m/s - speed of sound
@@ -157,8 +157,8 @@ def compute_impedance(l, d, h, c, Delta, omega = 1000, N_T = 2350000, U_val = No
         F_v1.append(Fv1)
         F_v2.append(Fv2)
         
-        y = (((1j * (omega - (k*U_val)) * A[n])/(rho_g * (c_g **2))) * (1 + (0.402 * F_t1[n])) + ((Z_w[n] * l[n])**(-1))) + ((1j * (omega + (k*U_val)) * A[n])/(rho_g * (c_g **2))) * (1 + (0.402 * F_t2[n])) + ((Z_w[n] * l[n])**(-1))               #Equation 5
-        z = (1j * (omega - (k*U_val)) * rho_g)/(A[n] * (1 - F_v1[n])) + (1j * (omega + (k*U_val)) * rho_g)/(A[n] * (1 - F_v2[n]))                                                                                                                     #Equation 4
+        y = (((1j * (omega - (k*U_val)) * area[n])/(rho_g * (c_g **2))) * (1 + (0.402 * F_t1[n])) + ((Z_w[n] * l[n])**(-1))) + ((1j * (omega + (k*U_val)) * area[n])/(rho_g * (c_g **2))) * (1 + (0.402 * F_t2[n])) + ((Z_w[n] * l[n])**(-1))               #Equation 5
+        z = (1j * (omega - (k*U_val)) * rho_g)/(area[n] * (1 - F_v1[n])) + (1j * (omega + (k*U_val)) * rho_g)/(area[n] * (1 - F_v2[n]))                                                                                                                     #Equation 4
         Y.append(y)
         Z.append(z)
         

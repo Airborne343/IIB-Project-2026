@@ -1,9 +1,13 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from step01_horsfield_model import l_m, d_m, h_m, area, Delta, c, compute_impedance
+from step02_tree_generation import get_depth_to_generation_map
 from step04_inverse_laplace_transform import omega_sweep, impedance_n34
-from step01_horsfield_model import l_m, d_m, h_m, A, Delta, c, compute_impedance
 
 frequency = np.linspace(100, 2500, 2500)
 omega_sweep = [freq * (2 * np.pi) for freq in frequency]
+depth_to_generations = get_depth_to_generation_map()
+generations_at_depth_2 = depth_to_generations.get(2, [])
 
 def build_matrix(omega, l0, l1, l2, l3, S0, S1, S2, S3, rho, c_gas, zeta, u_bar):
     Z_real, Z_imag = compute_impedance(l_m, d_m, h_m, c, Delta, omega, N_T = 2350000, U_val = 0)
@@ -89,15 +93,15 @@ def Newton_Raphson(omega0, delta, tol, max_iter, l0, l1, l2, l3, S0, S1, S2, S3,
     
     print("No convergence.")
     return None
-
+    
 l0 = l_m[34]/2
 l1 = l_m[34]
-l2 = l_m[33]
-l3 = l_m[32]
-S0 = A[34]/2
-S1 = A[34]
-S2 = A[33]
-S3 = A[32]
+l2 = l_m[(generations_at_depth_2[0] - 1)]
+l3 = l_m[(generations_at_depth_2[-1] - 1)]
+S0 = area[34]/2
+S1 = area[34]
+S2 = area[(generations_at_depth_2[0] - 1)]
+S3 = area[(generations_at_depth_2[-1] - 1)]
 rho = 1.225
 c_gas = 343
 zeta = 0.7
@@ -115,12 +119,12 @@ for omega_init in omega_guesses:
             omega_init, delta, tol, max_iter,
             l0 = l_m[34]/2, #parametrised in m
             l1 = l_m[34],
-            l2 = l_m[33],
-            l3 = l_m[32],   
-            S0 = A[34]/2,   #parametrised in m^2
-            S1 = A[34],
-            S2 = A[33],
-            S3 = A[32],     
+            l2 = l_m[(generations_at_depth_2[0] - 1)],
+            l3 = l_m[(generations_at_depth_2[-1] - 1)],
+            S0 = area[34]/2,   #parametrised in m^2
+            S1 = area[34],
+            S2 = area[(generations_at_depth_2[0] - 1)],
+            S3 = area[(generations_at_depth_2[-1] - 1)],  
             rho = 1.225,
             c_gas = 343,
             zeta = 0.7,     #parametrised
@@ -128,7 +132,7 @@ for omega_init in omega_guesses:
         )
              
         if omega_root is not None and omega_root > 1e-3:
-            if not any(np.isclose(omega_root, r, rtol=0, atol=5) for r in omega_roots):
+            if not any(np.isclose(omega_root, r, rtol=0, atol=1) for r in omega_roots):
                 omega_roots.append(omega_root)
                 print(f"✅ Found eigenfrequency: {omega_root / (2 * np.pi):.2f} Hz")
         
@@ -140,6 +144,7 @@ for omega_init in omega_guesses:
 
 mode_shape_result = {}
 
+print("Generations at depth 2:", generations_at_depth_2)
 print("Unique eigenfrequencies (Hz):")
 for i, omega_root in enumerate(sorted(omega_roots), start=1):
     frequency = omega_root/(2*np.pi)

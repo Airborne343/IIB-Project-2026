@@ -4,18 +4,18 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.integrate import solve_ivp
 from step05_mode_shapes import rho, c_gas, zeta, l1, mode_shape_result
-from step01_horsfield_model import A
+from step01_horsfield_model import area
 
 ##notes:
 #eta: modal amplitude
 #u': acoustic velocity perturbation
 
-flowspeed_data = pd.read_csv("Volumetric Flow Rate - Default Dataset.csv")
+flowspeed_data = pd.read_csv("_Volumetric Flow Rate - Default Dataset.csv")
 flowspeed_t_data = flowspeed_data['t'].values
 U_data = flowspeed_data['U'].values
 dU_data = np.gradient(U_data, flowspeed_t_data)
 
-volume_data = pd.read_csv("Tidal Volume - Default Dataset.csv")
+volume_data = pd.read_csv("_Tidal Volume - Default Dataset.csv")
 volume_t_data = volume_data['t'].values
 Vh_data = volume_data['V_h'].values
 
@@ -61,7 +61,7 @@ for i, mode_data in mode_shape_result.items():
         eta, eta_dot, u, u_dot = x  #state space vector 
         
         #parameters
-        omega_d = c_gas * np.sqrt(A[33]/(V_h(t) * l1))      #damper frequency
+        omega_d = c_gas * np.sqrt(area[33]/(V_h(t) * l1))      #damper frequency
         nu = 50                                             #growth rate
         kappa = 1000                                        #non-linear coefficient
         alpha = 500                                         #u_dot term in 1st eqn

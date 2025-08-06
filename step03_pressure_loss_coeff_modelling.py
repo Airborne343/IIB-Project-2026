@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
 import matplotlib.pyplot as plt
-from step01_horsfield_model import A, l, Z_in, rho_g
+from step01_horsfield_model import area, l, Z_in, rho_g
 
 Kc = 0.05 #assumed value from literature
 Kd = 0.35 #value at Ac/A2 = 0.2
@@ -29,14 +29,14 @@ Q_test = [10/60000]
 for q in Q_test:
     total_pressure_loss = 0
     
-    for i in range(len(A) - 1):
-        delta_p = pressure_loss_across_one_tube(A[i], q)
+    for i in range(len(area) - 1):
+        delta_p = pressure_loss_across_one_tube(area[i], q)
         delta_p = delta_p/1000000
         total_pressure_loss += delta_p
     
     pressure_loss_sweep.append(total_pressure_loss)
     
-    pressure_loss_coeff = total_pressure_loss/(0.5 * rho_g * ((q / A[33]) ** 2))
+    pressure_loss_coeff = total_pressure_loss/(0.5 * rho_g * ((q / area[33]) ** 2))
     pressure_loss_coefficient.append(pressure_loss_coeff)
 
 plt.figure(figsize=(10,5))
