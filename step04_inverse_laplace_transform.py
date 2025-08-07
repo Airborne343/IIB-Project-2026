@@ -41,12 +41,11 @@ def state_space_model(poles, residues, d, t = None, u = None):
     A = np.diag(poles)
     B = np.ones((len(poles), 1))
     C = residues.reshape(1, -1)
-    D = 0
+    D = d
 
     if t is None:
         t = np.linspace(0, 0.2, 20000)
-
-    dt = t[1] - t[0]
+        dt = t[1] - t[0]
     
     if u is None:
         u = np.zeros_like(t)
@@ -122,7 +121,6 @@ d = vf_best.constant_coeff[0]
 e = vf_best.proportional_coeff[0]
 
 all_poles, all_residues = include_conjugates(poles, residues)
-
 t_impulse, Z_t, x_out, A, B, C, D = state_space_model(all_poles, all_residues, d)
 
 plt.figure()
