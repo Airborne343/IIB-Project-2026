@@ -70,7 +70,7 @@ def coupled_oscillatory_model(t, state):
     u_input = np.array([[u]])
     x_dot = A @ x + B @ u_input
     x_dot = x_dot.flatten()
-
+    
     #Z_t equation
     Z_t = np.real(C @ x + D * u_input)
     alpha = alpha_function(Z_t)
@@ -80,7 +80,8 @@ def coupled_oscillatory_model(t, state):
     
     #u_ddot equation
     u_ddot = (-beta * float(U(t)) * u_dot - u * u_dot - (abs(float(dU(t))) * beta + omega_d**2) * u - gamma * eta_dot)
-    return [np.real(eta_dot), np.real(eta_ddot), np.real(u_dot), np.real(u_ddot), *x_dot]
+    
+    return [float(np.real(eta_dot).item()), float(np.real(eta_ddot).item()), float(np.real(u_dot).item()), float(np.real(u_ddot).item())] + np.real(x_dot).flatten().tolist()
 
 #initialise
 N = len(all_poles)
@@ -88,7 +89,6 @@ x_init = np.zeros(N)
 x0 = [0.1, 0, 0.01, 0] + list(x_init)
 t_span = (0, 0.2)
 t_eval = np.linspace(*t_span, 5000)
-
 solver = solve_ivp(coupled_oscillatory_model, t_span, x0, method = 'RK45', t_eval = t_eval)
 
 results = {
