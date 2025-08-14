@@ -4,7 +4,7 @@ import pandas as pd
 from scipy.interpolate import interp1d
 from scipy.integrate import solve_ivp
 from step05_mode_shapes import rho, c_gas, zeta, l1, mode_shape_result
-from step01_horsfield_model import area
+from step01_horsfield_model import area, l_m
 
 ##notes:
 #eta: modal amplitude
@@ -61,7 +61,8 @@ for i, mode_data in mode_shape_result.items():
         eta, eta_dot, u, u_dot = x  #state space vector 
         
         #parameters
-        omega_d = c_gas * np.sqrt(area[33]/(V_h(t) * l1))      #damper frequency
+        omega_d = c_gas * np.sqrt(area[33]/(V_h(t) * l_m[33]))   #damper frequency
+        print(f"c_gas: {c_gas}, area33: {area[33]}, V_h: {V_h(t)}, l_m: {l_m[33]}, omega_d: {omega_d}")
         nu = 50                                             #growth rate
         kappa = 1000                                        #non-linear coefficient
         alpha = 500                                         #u_dot term in 1st eqn

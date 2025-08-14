@@ -3,12 +3,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import sys
 from scipy.interpolate import interp1d
-from scipy.integrate import solve_ivp
+from scipy.integrate import solve_ivp, quad
 
 #__File_Imports__
-from step01_horsfield_model import area
+from step01_horsfield_model import area, d_m, l_m
 from step04_inverse_laplace_transform import all_poles, all_residues, d, state_space_model
-from step05_mode_shapes import rho, c_gas, zeta, l1, mode_shape_result
+from step05_mode_shapes import rho, c_gas, zeta, mode_shape_result
 
 ##notes:
 #eta: modal amplitude
@@ -60,11 +60,11 @@ def coupled_oscillatory_model(t, state):
     x = state[4 :]
     
     #parameters
-    omega_d = c_gas * np.sqrt(area[33]/(V_h(t) * l1))   #damper frequency
-    nu = 50                                             #growth rate
-    kappa = 1000                                        #non-linear coefficient
-    beta = zeta/l1                                      #u_dot term in 2nd eqn
-    gamma = - psi[0]/(rho * l1)                         #eta_dot term in 2nd eqn
+    omega_d = c_gas * np.sqrt(area[33]/(V_h(t) * l_m[33]))   #damper frequency
+    nu = 50                                                  #growth rate
+    kappa = 1000                                             #non-linear coefficient
+    beta = zeta/l_m[33]                                      #u_dot term in 2nd eqn
+    gamma = - psi[0]/(rho * l_m[33])                         #eta_dot term in 2nd eqn
     
     x = np.array(x).reshape(-1, 1)
     u_input = np.array([[u]])
@@ -76,10 +76,10 @@ def coupled_oscillatory_model(t, state):
     alpha = alpha_function(Z_t)
     
     #eta_ddot equation
-    eta_ddot = - ((np.abs(omega_0) ** 2) * eta) - (alpha * u_dot) + (2 * nu * eta_dot) - (kappa * (eta ** 2) * eta_dot)
+    eta_ddot = - ((np.abs(omega_0) ** 2) * eta) - (alpha * eta_dot) + (2 * nu * eta_dot) - (kappa * (eta ** 2) * eta_dot)
     
     #u_ddot equation
-    u_ddot = (-beta * float(U(t)) * u_dot - u * u_dot - (abs(float(dU(t))) * beta + omega_d**2) * u - gamma * eta_dot)
+    u_ddot = (-beta * (float(U(t)) + u) * u_dot - (abs(float(dU(t))) * beta + omega_d**2) * u - gamma * eta_dot)
     
     return [float(np.real(eta_dot).item()), float(np.real(eta_ddot).item()), float(np.real(u_dot).item()), float(np.real(u_ddot).item())] + np.real(x_dot).flatten().tolist()
 
@@ -87,8 +87,8 @@ def coupled_oscillatory_model(t, state):
 N = len(all_poles)
 x_init = np.zeros(N)
 x0 = [0.1, 0, 0.01, 0] + list(x_init)
-t_span = (0, 0.2)
-t_eval = np.linspace(*t_span, 5000)
+t_span = (0, 1)
+t_eval = np.linspace(*t_span, 51000)
 solver = solve_ivp(coupled_oscillatory_model, t_span, x0, method = 'RK45', t_eval = t_eval)
 
 results = {
